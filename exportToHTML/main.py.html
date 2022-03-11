@@ -1,0 +1,232 @@
+<html>
+<head>
+<title>main.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6897bb;}
+.s3 { color: #6a8759;}
+.s4 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+main.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">pygame</span>
+<span class="s0">import </span><span class="s1">pygame.freetype</span>
+<span class="s0">import </span><span class="s1">random</span>
+<span class="s0">from </span><span class="s1">pygame.rect </span><span class="s0">import </span><span class="s1">Rect</span>
+<span class="s0">from </span><span class="s1">enum </span><span class="s0">import </span><span class="s1">Enum</span>
+<span class="s0">from </span><span class="s1">pygame.sprite </span><span class="s0">import </span><span class="s1">RenderUpdates</span>
+
+<span class="s1">pygame.init()</span>
+
+<span class="s1">clock = pygame.time.Clock()</span>
+<span class="s1">clock.tick(</span><span class="s2">60</span><span class="s1">)</span>
+
+<span class="s1">pygame.display.set_caption(</span><span class="s3">&quot;Shooting Range&quot;</span><span class="s1">)</span>
+<span class="s1">icon = pygame.image.load(</span><span class="s3">'target.png'</span><span class="s1">)</span>
+<span class="s1">pygame.display.set_icon(icon)</span>
+<span class="s1">BLUE = (</span><span class="s2">106</span><span class="s0">, </span><span class="s2">159</span><span class="s0">, </span><span class="s2">181</span><span class="s1">)</span>
+<span class="s1">WHITE = (</span><span class="s2">255</span><span class="s0">, </span><span class="s2">255</span><span class="s0">, </span><span class="s2">255</span><span class="s1">)</span>
+
+<span class="s0">def </span><span class="s1">create_surface_with_text(text</span><span class="s0">, </span><span class="s1">font_size</span><span class="s0">, </span><span class="s1">text_rgb):</span>
+    <span class="s1">font = pygame.freetype.SysFont(</span><span class="s3">&quot;Courier&quot;</span><span class="s0">, </span><span class="s1">font_size</span><span class="s0">, </span><span class="s1">bold=</span><span class="s0">True</span><span class="s1">)</span>
+    <span class="s1">surface</span><span class="s0">, </span><span class="s1">_ = font.render(text=text</span><span class="s0">, </span><span class="s1">fgcolor=text_rgb)</span>
+    <span class="s0">return </span><span class="s1">surface.convert_alpha()</span>
+
+
+<span class="s0">class </span><span class="s1">UIElement(pygame.sprite.Sprite):</span>
+
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">center_position</span><span class="s0">, </span><span class="s1">text</span><span class="s0">, </span><span class="s1">font_size</span><span class="s0">, </span><span class="s1">text_rgb</span><span class="s0">, </span><span class="s1">action=</span><span class="s0">None</span><span class="s1">):</span>
+        <span class="s1">super().__init__()</span>
+
+        <span class="s1">self.mouse_over = </span><span class="s0">False</span>
+
+
+        <span class="s1">default_image = create_surface_with_text(text=text</span><span class="s0">, </span><span class="s1">font_size=font_size</span><span class="s0">, </span><span class="s1">text_rgb=text_rgb)</span>
+
+
+        <span class="s1">highlighted_image = create_surface_with_text(text=text</span><span class="s0">, </span><span class="s1">font_size=font_size * </span><span class="s2">1.2</span><span class="s0">, </span><span class="s1">text_rgb=text_rgb)</span>
+
+        
+        <span class="s1">self.images = [default_image</span><span class="s0">, </span><span class="s1">highlighted_image]</span>
+        <span class="s1">self.rects = [</span>
+            <span class="s1">default_image.get_rect(center=center_position)</span><span class="s0">,</span>
+            <span class="s1">highlighted_image.get_rect(center=center_position)</span><span class="s0">,</span>
+        <span class="s1">]</span>
+        <span class="s1">self.action = action</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">image(self):</span>
+        <span class="s0">return </span><span class="s1">self.images[</span><span class="s2">1</span><span class="s1">] </span><span class="s0">if </span><span class="s1">self.mouse_over </span><span class="s0">else </span><span class="s1">self.images[</span><span class="s2">0</span><span class="s1">]</span>
+
+    <span class="s1">@property</span>
+    <span class="s0">def </span><span class="s1">rect(self):</span>
+        <span class="s0">return </span><span class="s1">self.rects[</span><span class="s2">1</span><span class="s1">] </span><span class="s0">if </span><span class="s1">self.mouse_over </span><span class="s0">else </span><span class="s1">self.rects[</span><span class="s2">0</span><span class="s1">]</span>
+
+    <span class="s0">def </span><span class="s1">update(self</span><span class="s0">, </span><span class="s1">mouse_pos</span><span class="s0">, </span><span class="s1">mouse_up):</span>
+        <span class="s0">if </span><span class="s1">self.rect.collidepoint(mouse_pos):</span>
+            <span class="s1">self.mouse_over = </span><span class="s0">True</span>
+            <span class="s0">if </span><span class="s1">mouse_up:</span>
+                <span class="s0">return </span><span class="s1">self.action</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">self.mouse_over = </span><span class="s0">False</span>
+
+    <span class="s0">def </span><span class="s1">draw(self</span><span class="s0">, </span><span class="s1">surface):</span>
+        <span class="s1">surface.blit(self.image</span><span class="s0">, </span><span class="s1">self.rect)</span>
+
+<span class="s1">gun = pygame.image.load(</span><span class="s3">'gun3.png'</span><span class="s1">)</span>
+<span class="s1">gun = pygame.transform.scale(gun</span><span class="s0">,</span><span class="s1">(</span><span class="s2">70</span><span class="s0">,</span><span class="s2">70</span><span class="s1">))</span>
+
+<span class="s0">class </span><span class="s1">Reticle(pygame.sprite.Sprite):</span>
+    <span class="s0">def </span><span class="s1">__init__(self):</span>
+       <span class="s1">super().__init__()</span>
+       <span class="s1">self.image = gun</span>
+       <span class="s1">self.rect = self.image.get_rect()</span>
+       <span class="s1">self.gunshot = pygame.mixer.Sound(</span><span class="s3">&quot;gun-gunshot-01.wav&quot;</span><span class="s1">)</span>
+    <span class="s0">def </span><span class="s1">shoot(self):</span>
+        <span class="s1">self.gunshot.play()</span>
+        <span class="s1">pygame.sprite.spritecollide(reticle</span><span class="s0">,</span><span class="s1">target_group</span><span class="s0">,True</span><span class="s1">)</span>
+    <span class="s0">def </span><span class="s1">update(self):</span>
+        <span class="s1">self.rect.center = pygame.mouse.get_pos()</span>
+
+<span class="s0">class </span><span class="s1">Target(pygame.sprite.Sprite):</span>
+    <span class="s0">def </span><span class="s1">__init__(self</span><span class="s0">, </span><span class="s1">pos_x</span><span class="s0">, </span><span class="s1">pos_y):</span>
+        <span class="s1">super().__init__()</span>
+        <span class="s1">self.image = pygame.image.load(</span><span class="s3">'target_colored_outline.png'</span><span class="s1">)</span>
+        <span class="s1">self.rect = self.image.get_rect()</span>
+        <span class="s1">self.rect.center = [pos_x</span><span class="s0">,</span><span class="s1">pos_y]</span>
+
+<span class="s1">reticle = Reticle()</span>
+<span class="s1">reticle_group = pygame.sprite.Group()</span>
+
+<span class="s1">target_group = pygame.sprite.Group()</span>
+
+<span class="s0">def </span><span class="s1">create():</span>
+    <span class="s0">for </span><span class="s1">target </span><span class="s0">in </span><span class="s1">range(</span><span class="s2">20</span><span class="s1">):</span>
+        <span class="s1">new_target = Target(random.randrange(</span><span class="s2">0</span><span class="s0">, </span><span class="s2">1800</span><span class="s1">)</span><span class="s0">, </span><span class="s1">random.randrange(</span><span class="s2">0</span><span class="s0">, </span><span class="s2">800</span><span class="s1">))</span>
+        <span class="s1">target_group.add(new_target)</span>
+
+<span class="s0">class </span><span class="s1">GameState(Enum):</span>
+    <span class="s1">QUIT = -</span><span class="s2">1</span>
+    <span class="s1">TITLE = </span><span class="s2">0</span>
+    <span class="s1">NEWGAME = </span><span class="s2">1</span>
+
+<span class="s0">def </span><span class="s1">main():</span>
+    <span class="s1">pygame.init()</span>
+
+    <span class="s1">screen = pygame.display.set_mode((</span><span class="s2">1800</span><span class="s0">, </span><span class="s2">950</span><span class="s1">))</span>
+
+    <span class="s4"># create a ui element</span>
+    <span class="s1">quit_btn = UIElement(</span>
+        <span class="s1">center_position=(</span><span class="s2">400</span><span class="s0">, </span><span class="s2">400</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s1">font_size=</span><span class="s2">30</span><span class="s0">,</span>
+        <span class="s1">text_rgb=WHITE</span><span class="s0">,</span>
+        <span class="s1">text=</span><span class="s3">&quot;Hello World&quot;</span><span class="s0">,</span>
+        <span class="s1">action=GameState.QUIT</span>
+    <span class="s1">)</span>
+
+    <span class="s4"># main loop</span>
+    <span class="s0">while True</span><span class="s1">:</span>
+        <span class="s1">pygame.init()</span>
+
+        <span class="s1">screen = pygame.display.set_mode((</span><span class="s2">1800</span><span class="s0">, </span><span class="s2">950</span><span class="s1">))</span>
+        <span class="s1">game_state = GameState.TITLE</span>
+
+        <span class="s0">while True</span><span class="s1">:</span>
+            <span class="s0">if </span><span class="s1">game_state == GameState.TITLE:</span>
+                <span class="s1">game_state = title_screen(screen)</span>
+
+            <span class="s0">if </span><span class="s1">game_state == GameState.NEWGAME:</span>
+                <span class="s1">game_state = play_level(screen)</span>
+
+            <span class="s0">if </span><span class="s1">game_state == GameState.QUIT:</span>
+                <span class="s1">pygame.quit()</span>
+                <span class="s0">return</span>
+
+<span class="s0">def </span><span class="s1">title_screen(screen):</span>
+    <span class="s1">start_btn = UIElement(</span>
+        <span class="s1">center_position=(</span><span class="s2">300</span><span class="s0">, </span><span class="s2">700</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s1">font_size=</span><span class="s2">30</span><span class="s0">,</span>
+        <span class="s1">text_rgb=WHITE</span><span class="s0">,</span>
+        <span class="s1">text=</span><span class="s3">&quot;Start&quot;</span><span class="s0">,</span>
+        <span class="s1">action=GameState.NEWGAME</span><span class="s0">,</span>
+    <span class="s1">)</span>
+    <span class="s1">quit_btn = UIElement(</span>
+        <span class="s1">center_position=(</span><span class="s2">300</span><span class="s0">, </span><span class="s2">800</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s1">font_size=</span><span class="s2">30</span><span class="s0">,</span>
+        <span class="s1">text_rgb=WHITE</span><span class="s0">,</span>
+        <span class="s1">text=</span><span class="s3">&quot;Quit&quot;</span><span class="s0">,</span>
+        <span class="s1">action=GameState.QUIT</span><span class="s0">,</span>
+    <span class="s1">)</span>
+    <span class="s1">title_text = UIElement(</span>
+        <span class="s1">center_position=(</span><span class="s2">600</span><span class="s0">, </span><span class="s2">100</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s1">font_size=</span><span class="s2">50</span><span class="s0">,</span>
+        <span class="s1">text_rgb=WHITE</span><span class="s0">,</span>
+        <span class="s1">text=</span><span class="s3">&quot;Welcome to the Shooting Range!&quot;</span>
+    <span class="s1">)</span>
+
+    <span class="s1">buttons = [start_btn</span><span class="s0">, </span><span class="s1">quit_btn</span><span class="s0">, </span><span class="s1">title_text]</span>
+
+    <span class="s0">while True</span><span class="s1">:</span>
+        <span class="s1">mouse_up = </span><span class="s0">False</span>
+        <span class="s0">for </span><span class="s1">event </span><span class="s0">in </span><span class="s1">pygame.event.get():</span>
+            <span class="s0">if </span><span class="s1">event.type == pygame.MOUSEBUTTONUP </span><span class="s0">and </span><span class="s1">event.button == </span><span class="s2">1</span><span class="s1">:</span>
+                <span class="s1">mouse_up = </span><span class="s0">True</span>
+        <span class="s1">background = pygame.image.load(</span><span class="s3">&quot;shootingRange.jpg&quot;</span><span class="s1">)</span>
+        <span class="s1">background = pygame.transform.scale(background</span><span class="s0">, </span><span class="s1">(</span><span class="s2">1800</span><span class="s0">,</span><span class="s2">950</span><span class="s1">))</span>
+        <span class="s1">screen.blit(background</span><span class="s0">, </span><span class="s1">(</span><span class="s2">0</span><span class="s0">,</span><span class="s2">0</span><span class="s1">))</span>
+
+        <span class="s1">pygame.mouse.set_visible(</span><span class="s0">True</span><span class="s1">)</span>
+        <span class="s0">for </span><span class="s1">button </span><span class="s0">in </span><span class="s1">buttons:</span>
+            <span class="s1">ui_action = button.update(pygame.mouse.get_pos()</span><span class="s0">, </span><span class="s1">mouse_up)</span>
+            <span class="s0">if </span><span class="s1">ui_action </span><span class="s0">is not None</span><span class="s1">:</span>
+                <span class="s0">return </span><span class="s1">ui_action</span>
+            <span class="s1">button.draw(screen)</span>
+
+        <span class="s1">pygame.display.flip()</span>
+
+<span class="s0">def </span><span class="s1">play_level(screen):</span>
+    <span class="s1">return_btn = UIElement(</span>
+        <span class="s1">center_position=(</span><span class="s2">140</span><span class="s0">, </span><span class="s2">900</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s1">font_size=</span><span class="s2">20</span><span class="s0">,</span>
+        <span class="s1">text_rgb=WHITE</span><span class="s0">,</span>
+        <span class="s1">text=</span><span class="s3">&quot;Return to main menu&quot;</span><span class="s0">,</span>
+        <span class="s1">action=GameState.TITLE</span><span class="s0">,</span>
+    <span class="s1">)</span>
+    <span class="s1">create()</span>
+    <span class="s0">while True</span><span class="s1">:</span>
+        <span class="s1">mouse_up = </span><span class="s0">False</span>
+        <span class="s0">for </span><span class="s1">event </span><span class="s0">in </span><span class="s1">pygame.event.get():</span>
+            <span class="s0">if </span><span class="s1">event.type == pygame.MOUSEBUTTONUP </span><span class="s0">and </span><span class="s1">event.button == </span><span class="s2">1</span><span class="s1">:</span>
+                <span class="s1">mouse_up = </span><span class="s0">True</span>
+                <span class="s1">reticle.shoot()</span>
+        <span class="s1">concretebg = pygame.image.load(</span><span class="s3">&quot;BG_concrete.png&quot;</span><span class="s1">)</span>
+        <span class="s1">concretebg = pygame.transform.scale(concretebg</span><span class="s0">, </span><span class="s1">(</span><span class="s2">1800</span><span class="s0">, </span><span class="s2">950</span><span class="s1">))</span>
+        <span class="s1">screen.blit(concretebg</span><span class="s0">, </span><span class="s1">(</span><span class="s2">0</span><span class="s0">, </span><span class="s2">0</span><span class="s1">))</span>
+
+        <span class="s1">pygame.mouse.set_visible(</span><span class="s0">False</span><span class="s1">)</span>
+        <span class="s1">reticle_group.add(reticle)</span>
+        <span class="s1">target_group.draw(screen)</span>
+        <span class="s1">reticle_group.draw(screen)</span>
+        <span class="s1">reticle_group.update()</span>
+
+        <span class="s1">ui_action = return_btn.update(pygame.mouse.get_pos()</span><span class="s0">, </span><span class="s1">mouse_up)</span>
+        <span class="s0">if </span><span class="s1">ui_action </span><span class="s0">is not None</span><span class="s1">:</span>
+            <span class="s0">return </span><span class="s1">ui_action</span>
+        <span class="s1">return_btn.draw(screen)</span>
+
+        <span class="s1">pygame.display.flip()</span>
+        <span class="s1">pygame.display.update()</span>
+
+<span class="s4"># call main when the script is run</span>
+<span class="s0">if </span><span class="s1">__name__ == </span><span class="s3">&quot;__main__&quot;</span><span class="s1">:</span>
+    <span class="s1">main()</span>
+</pre>
+</body>
+</html>
